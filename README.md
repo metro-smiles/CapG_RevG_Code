@@ -3,8 +3,15 @@
 
 > [Moitreya Chatterjee, Alexander G Schwing, "Diverse and Coherent Paragraph Generation from Images ", ECCV (2018)](https://arxiv.org/pdf/1809.00681) 
 
-
 ## Dependencies
 - Python 2.7
 - Pytorch 0.4.0
 - Anaconda 3.6
+
+## Citation
+@inproceedings{zhang2018hdgan,
+Author = {Moitreya Chatterjee and Alexander G. Schwing},
+Title = {Diverse and Coherent Paragraph Generation from Images},
+Year = {2018},
+booktitle = {ECCV},
+}
