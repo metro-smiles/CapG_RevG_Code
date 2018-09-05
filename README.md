@@ -9,9 +9,11 @@
 - Anaconda 3.6
 
 ## Citation
-@inproceedings{zhang2018hdgan,
+```
+@inproceedings{chatterjee2018diverse,
 Author = {Moitreya Chatterjee and Alexander G. Schwing},
 Title = {Diverse and Coherent Paragraph Generation from Images},
 Year = {2018},
 booktitle = {ECCV},
 }
+```
