@@ -14,20 +14,16 @@ from torch.autograd import Variable
 from torch import optim
 import torch.nn.functional as F
 
-base_dir = '/path/to/folder/containing/training/and/test/data/'
-
-max_epoch = 20; learning_rate = 0.0001; print_every = 10; MAX_LENGTH = 20; batch_size = 8; MAX_SENTC = 6; L_S = 5.0; L_W = 1.0; lamb = 0.6;
-
-USE_CUDA = True;
+#base_dir = '/path/to/folder/containing/training/and/test/data/'
 
 # Define the actual training function -- operates one training sample pair (x, y) at a time
-def train(input_variable, target_variable, obj_name, model, coupling_model, coherence_model, topic_net, criterion_1, criterion_2, hidden_size, loss = 0):
+def train(input_variable, target_variable, obj_name, model, coupling_model, coherence_model, topic_net, criterion_1, criterion_2, hidden_size, opt, base_dir, loss = 0):
 	model_hidden_st = None # Stores the hidden state vector at every step of the Sentence RNN
 	
 	nos_sentc = len(input_variable); sent_exec = 0; 
 	
 	sent_cand = 0;
-	for st in range(MAX_SENTC): # Iterate to see how many sentences the model intends to generate
+	for st in range(opt.MAX_SENTC): # Iterate to see how many sentences the model intends to generate
 
 		# Read the Image Features
 		if os.path.isfile(base_dir + 'Train/' +  obj_name + '/Feat_Vec.pickle') == False: # Check if image feature file is present
@@ -55,7 +51,7 @@ def train(input_variable, target_variable, obj_name, model, coupling_model, cohe
 			model_hidden =  Variable(torch.from_numpy( mh[0, 0, :hidden_size].reshape(1, 1, hidden_size) ))
 
 		# Check if Variable should be moved to GPU
-		if USE_CUDA:
+		if opt.USE_CUDA:
 			mod_ip = mod_ip.cuda()
 			model_hidden = model_hidden.cuda()
 
@@ -68,7 +64,7 @@ def train(input_variable, target_variable, obj_name, model, coupling_model, cohe
 		if strtstp_ni == 0: # So we continue
 			sent_cand += 1
 	
-	loss += L_S * criterion_1(sent_cand, nos_sentc) # The cross-entropy loss over the number of sentences
+	loss += opt.L_S * criterion_1(sent_cand, nos_sentc) # The cross-entropy loss over the number of sentences
 	
 	# Count the number of valid sentences in the training sample
 	val_sent = 0;
@@ -114,7 +110,7 @@ def train(input_variable, target_variable, obj_name, model, coupling_model, cohe
 			sent_exec += 1
 
 		# Check if Variable should be moved to GPU
-		if USE_CUDA:
+		if opt.USE_CUDA:
 			mod_ip = mod_ip.cuda()
 			model_hidden = model_hidden.cuda()
 
@@ -142,7 +138,7 @@ def train(input_variable, target_variable, obj_name, model, coupling_model, cohe
 		target_length = op_var.size()[0]
 		
 		loc_vec = (gl_mh[:, :, :, st]).reshape(1, 1, -1) # The original topic vector for the current sentence
-		comb = np.add((1 - lamb) * loc_vec[0, 0, :], (lamb) * prev_vec[0, 0, :]) # Combine the current topic vector and the coherence vector from the previous sentence
+		comb = np.add((1 - opt.lamb) * loc_vec[0, 0, :], (opt.lamb) * prev_vec[0, 0, :]) # Combine the current topic vector and the coherence vector from the previous sentence
 		mh = ((coupling_model(glob_vec[0, 0, :], comb ) ).reshape(1, 1, -1)).astype(np.float32) # Coupling Unit
 		mh = (( comb  ).reshape(1, 1, -1)).astype(np.float32) 
 
@@ -150,7 +146,7 @@ def train(input_variable, target_variable, obj_name, model, coupling_model, cohe
 		model_input =  Variable(torch.from_numpy( mh[0, 0, :].reshape(1, 1, mod_feats.shape[1]) ))
 		model_hidden = Variable(torch.from_numpy(temp_hid))
 
-		if USE_CUDA:
+		if opt.USE_CUDA:
 			model_hidden = model_hidden.cuda()
 			model_input = model_input.cuda()
 			ip_var = ip_var.cuda()
@@ -160,7 +156,7 @@ def train(input_variable, target_variable, obj_name, model, coupling_model, cohe
 		for di in xrange(1, target_length, 1):
 			#print('Word Number: ' + str(di))
 			model_output, model_hidden = model(model_input, model_hidden, 'level_2') # level_2 indicates that we want to use the Sentence RNN
-			loss += L_W * criterion_2(model_output, op_var[di:di+1]) # Use the second cross-entropy term
+			loss += opt.L_W * criterion_2(model_output, op_var[di:di+1]) # Use the second cross-entropy term
 			model_input = op_var[di] # Teacher forcing
 		
 		# Re-initialize the previous vector
