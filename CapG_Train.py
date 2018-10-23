@@ -17,7 +17,7 @@ import torch.nn.functional as F
 #base_dir = '/path/to/folder/containing/training/and/test/data/'
 
 # Define the actual training function -- operates one training sample pair (x, y) at a time
-def train(input_variable, target_variable, obj_name, model, coupling_model, coherence_model, topic_net, criterion_1, criterion_2, hidden_size, opt, base_dir, loss = 0):
+def train(input_variable, target_variable, obj_name, model, criterion_1, criterion_2, hidden_size, opt, base_dir, loss = 0):
 	model_hidden_st = None # Stores the hidden state vector at every step of the Sentence RNN
 	
 	nos_sentc = len(input_variable); sent_exec = 0; 
@@ -116,7 +116,7 @@ def train(input_variable, target_variable, obj_name, model, coupling_model, cohe
 
 		output_contstop, model_hidden = model(mod_ip, model_hidden, 'level_1') # level_1 indicates that we are using the Senetence RNN
 		model_hidden_st = model_hidden
-		gl_mh[0, 0, :, sent_exec-1] = (topic_net(model_hidden_st).cpu().data.numpy()).reshape(1, 1, hidden_size) # Transform the hidden state to obtain the topic vector
+		gl_mh[0, 0, :, sent_exec-1] = (model(model_hidden_st, None, 'topic')[0].cpu().data.numpy()).reshape(1, 1, hidden_size) # Transform the hidden state to obtain the topic vector
 	
 	# Compute the global topic vector as a weighted average of the individual topic vectors
 	glob_vec = gl_mh[0, 0, :, 0].reshape(1, 1, hidden_size)
@@ -139,7 +139,7 @@ def train(input_variable, target_variable, obj_name, model, coupling_model, cohe
 		
 		loc_vec = (gl_mh[:, :, :, st]).reshape(1, 1, -1) # The original topic vector for the current sentence
 		comb = np.add((1 - opt.lamb) * loc_vec[0, 0, :], (opt.lamb) * prev_vec[0, 0, :]) # Combine the current topic vector and the coherence vector from the previous sentence
-		mh = ((coupling_model(glob_vec[0, 0, :], comb ) ).reshape(1, 1, -1)).astype(np.float32) # Coupling Unit
+		mh = ((model(glob_vec[0, 0, :], comb, 'couple' )[0] ).reshape(1, 1, -1)).astype(np.float32) # Coupling Unit
 		mh = (( comb  ).reshape(1, 1, -1)).astype(np.float32) 
 
 		# Construct the input for the first word of a sentence in the Sentence RNN
@@ -160,6 +160,6 @@ def train(input_variable, target_variable, obj_name, model, coupling_model, cohe
 			model_input = op_var[di] # Teacher forcing
 		
 		# Re-initialize the previous vector
-		prev_vec = coherence_model(model_hidden)		
+		prev_vec = model(model_hidden, None, 'coher')[0]
 		
 	return loss.data[0] * 1.0 / target_length, loss # Pass the loss information to the calling function

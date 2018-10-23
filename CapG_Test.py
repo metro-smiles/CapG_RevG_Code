@@ -17,7 +17,7 @@ import torch.nn.functional as F
 # base_dir = '/path/to/folder/containing/training/and/test/data/'
 
 # The function for testing
-def test(obj_name, model, coupling_model, coherence_model, topic_net, opt, base_dir):
+def test(obj_name, model, opt, base_dir):
 	
 	model_hidden_st = None # Stores the hidden state vector at every step of the Sentence RNN
 	pred_words = [] # Stores the list of synthesized words
@@ -64,7 +64,7 @@ def test(obj_name, model, coupling_model, coherence_model, topic_net, opt, base_
 
 		if strtstp_ni == 0: # So we continue
 			val_sent += 1
-			gl_mh[0, 0, :, st] = (topic_net(model_hidden_st).cpu().data.numpy()).reshape(1, 1, opt.hidden_size) # Transform the hidden state to obtain the topic vector
+			gl_mh[0, 0, :, st] = (model(model_hidden_st, None, 'topic')[0].cpu().data.numpy()).reshape(1, 1, opt.hidden_size) # Transform the hidden state to obtain the topic vector
 
 	# Compute the Global Topic Vector as a weighted average of the individual topic vectors
 	glob_vec = gl_mh[0, 0, :, 0].reshape(1, 1, opt.hidden_size)
@@ -79,7 +79,7 @@ def test(obj_name, model, coupling_model, coherence_model, topic_net, opt, base_
 
 		loc_vec = (gl_mh[:, :, :, st]).reshape(1, 1, -1) # The original topic vector for the current sentence
 		comb = np.add((1-opt.lamb) * loc_vec[0, 0, :], (opt.lamb) * prev_vec[0, 0, :]) # Combine the current topic vector and the coherence vector from the previous sentence
-		mh = ((coupling_model(glob_vec[0, 0, :], comb ) ).reshape(1, 1, -1)).astype(np.float32) # Coupling Unit
+		mh = ((model(glob_vec[0, 0, :], comb, 'couple')[0] ).reshape(1, 1, -1)).astype(np.float32) # Coupling Unit
 		mh = (( comb  ).reshape(1, 1, -1)).astype(np.float32) 
 
 		# Construct the input for the first word of a sentence in the Sentence RNN
@@ -105,5 +105,5 @@ def test(obj_name, model, coupling_model, coherence_model, topic_net, opt, base_
 				model_input = Variable(torch.LongTensor( [ni] ))
 
 		# Re-initialize the previous vector
-		prev_vec = coherence_model(model_hidden)
+		prev_vec = model(model_hidden, None, 'coher')[0]
 	return pred_words
