@@ -52,7 +52,7 @@ class GRUModel_ContinueStop_Text(nn.Module):
 			#hidden = torch.cat([hidden, str_ip], 2)
 			output, hidden = self.gru_cont(ip, hidden)
 			output = self.softmax(self.out_cont(output[0])) # Obtain the labels of whether to continue or stop
-		elif flag == 'level_1': # Passing word embeddings - Word RNN
+		elif flag == 'level_2': # Passing word embeddings - Word RNN
 			output = self.embedding(input).view(1, 1, -1)
 			#print('Processed Input Embedding')
 			output = F.relu(output)
