@@ -10,7 +10,8 @@ from numpy import linalg as LA
 
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
+from torch.autograd import 
+
 from torch import optim
 import torch.nn.functional as F
 
@@ -40,15 +41,15 @@ def train(input_variable, target_variable, obj_name, model, criterion_1, criteri
 
 		temp_ip = torch.from_numpy(mod_feats)
 		temp_ip = temp_ip.float()
-		mod_ip = Variable(temp_ip) # Push in the Image Feature Here
+		mod_ip = Variable(temp_ip, requires_grad=True) # Push in the Image Feature Here
 
 		if st == 0:
 			temp_hid = np.zeros(hidden_size, dtype = np.float32) # random.uniform(0, 1, (hidden_size - star_embed ) )
 			temp_hid = temp_hid.reshape(1, 1, hidden_size )
-			model_hidden = Variable(torch.from_numpy(temp_hid))
+			model_hidden = Variable(torch.from_numpy(temp_hid), requires_grad=True)
 		else:
 			mh = model_hidden_st.cpu().data.numpy()
-			model_hidden =  Variable(torch.from_numpy( mh[0, 0, :hidden_size].reshape(1, 1, hidden_size) ))
+			model_hidden =  Variable(torch.from_numpy( mh[0, 0, :hidden_size].reshape(1, 1, hidden_size) ), requires_grad=True)
 
 		# Check if Variable should be moved to GPU
 		if opt.USE_CUDA:
@@ -97,16 +98,16 @@ def train(input_variable, target_variable, obj_name, model, criterion_1, criteri
 
 		temp_ip = torch.from_numpy(mod_feats)
 		temp_ip = temp_ip.float()
-		mod_ip = Variable(temp_ip)
+		mod_ip = Variable(temp_ip, requires_grad=True)
 
 		if sent_exec == 0: # The first sentence
 			temp_hid = np.zeros(hidden_size, dtype = np.float32) # random.uniform(0, 1, (hidden_size) )
 			temp_hid = temp_hid.reshape(1, 1, hidden_size )
-			model_hidden = Variable(torch.from_numpy(temp_hid)) # Push in the Image Feature Here #encoder_hidden
+			model_hidden = Variable(torch.from_numpy(temp_hid), requires_grad=True) # Push in the Image Feature Here #encoder_hidden
 			sent_exec += 1
 		else: # All other sentences are initialized from previous sentences
 			mh = model_hidden_st.cpu().data.numpy()
-			model_hidden =  Variable(torch.from_numpy( mh[0, 0, :hidden_size].reshape(1, 1, hidden_size) )) # Obtain the hidden state from the previous hidden state
+			model_hidden =  Variable(torch.from_numpy( mh[0, 0, :hidden_size].reshape(1, 1, hidden_size) ), requires_grad=True) # Obtain the hidden state from the previous hidden state
 			sent_exec += 1
 
 		# Check if Variable should be moved to GPU
@@ -132,8 +133,8 @@ def train(input_variable, target_variable, obj_name, model, criterion_1, criteri
 		
 		if len(input_variable[st]) <= 1: # If the sentence is of unit length, skip it
 			continue
-		ip_var = Variable(torch.LongTensor( input_variable[st] )) # One sentence
-		op_var = Variable(torch.LongTensor( target_variable[st] ))
+		ip_var = Variable(torch.LongTensor( input_variable[st] ), requires_grad=True) # One sentence
+		op_var = Variable(torch.LongTensor( target_variable[st] ), requires_grad=True)
 		input_length = ip_var.size()[0]
 		target_length = op_var.size()[0]
 		
@@ -143,8 +144,8 @@ def train(input_variable, target_variable, obj_name, model, criterion_1, criteri
 		mh = (( comb  ).reshape(1, 1, -1)).astype(np.float32) 
 
 		# Construct the input for the first word of a sentence in the Sentence RNN
-		model_input =  Variable(torch.from_numpy( mh[0, 0, :].reshape(1, 1, mod_feats.shape[1]) ))
-		model_hidden = Variable(torch.from_numpy(temp_hid))
+		model_input =  Variable(torch.from_numpy( mh[0, 0, :].reshape(1, 1, mod_feats.shape[1]) ), requires_grad=True)
+		model_hidden = Variable(torch.from_numpy(temp_hid), requires_grad=True)
 
 		if opt.USE_CUDA:
 			model_hidden = model_hidden.cuda()
